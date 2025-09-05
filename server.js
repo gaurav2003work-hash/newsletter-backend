@@ -142,7 +142,7 @@ app.post("/send-newsletter", upload.array("attachments"), async (req, res) => {
           }
 
           <div style="margin-top: 25px; text-align: center;">
-            <a href="https://yourcompany.com" style="background-color:#6a11cb; color:white; padding:10px 20px; text-decoration:none; border-radius:6px; font-weight:bold;">Visit Our Website</a>
+            <a href="https://conspicuous-solutions.in/" style="background-color:#6a11cb; color:white; padding:10px 20px; text-decoration:none; border-radius:6px; font-weight:bold;">Visit Our Website</a>
           </div>
 
           <hr style="margin:25px 0;border:none;border-top:1px solid #e5e7eb" />
