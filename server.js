@@ -6,10 +6,12 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import cors from "cors";
-import morgan from "morgan"; // For better logs
+import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // ------------------------------
-// Load environment variables
+// Load Environment Variables
 // ------------------------------
 dotenv.config();
 
@@ -20,13 +22,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ------------------------------
+// Get Current Directory (__dirname in ES Modules)
+// ------------------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ------------------------------
 // CORS Configuration
 // ------------------------------
-// Add your live Netlify frontend URL here
 const allowedOrigins = [
-  "http://localhost:3000",             // Local React testing
-  "http://127.0.0.1:5500",            // If you're using VSCode Live Server
-  "https://newsletter-cons.netlify.app" // ✅ Your deployed Netlify frontend
+  "http://localhost:3000", // Local React testing
+  "http://127.0.0.1:5500", // VSCode Live Server
+  "https://newsletter-cons.netlify.app", // ✅ Your Netlify frontend
 ];
 
 app.use(
@@ -50,7 +57,12 @@ app.use(
 // ------------------------------
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan("dev")); // Log all incoming requests
+app.use(morgan("dev"));
+
+// ------------------------------
+// Serve Static Files (Logo, etc.)
+// ------------------------------
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 // ------------------------------
 // Health Check Route
@@ -87,12 +99,12 @@ app.post("/send-newsletter", async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER, // Gmail ID from .env
-        pass: process.env.EMAIL_PASS, // Gmail App Password from .env
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Verify transporter connection
+    // Verify connection
     await transporter.verify();
 
     // ------------------------------
@@ -104,32 +116,39 @@ app.post("/send-newsletter", async (req, res) => {
         to: email,
         subject: subject,
         html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7fc; border-radius: 10px; max-width: 600px; margin: auto;">
+          <div style="font-family: 'Arial', sans-serif; background-color: #f8f9ff; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 0 12px rgba(0,0,0,0.1);">
+            
             <div style="text-align: center; margin-bottom: 20px;">
-              <img src="https://your-company-logo-link.com/logo.png" alt="Company Logo" style="width: 120px;" />
+              <img src="cid:companyLogo" alt="Company Logo" style="height: 80px;" />
             </div>
-            <h2 style="color: #6a11cb; font-size: 24px; margin-bottom: 10px;">${subject}</h2>
-            <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            
+            <h2 style="color: #6a11cb; font-size: 22px; margin-bottom: 15px; text-align: center;">${subject}</h2>
+            
+            <div style="color: #333; font-size: 16px; line-height: 1.6; background-color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
               ${message}
-            </p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
-            <p style="font-size: 14px; color: #666; text-align: center;">
-              Best Regards,<br>
-              <strong>Your Newsletter Team 🚀</strong>
-            </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; color: #888; font-size: 13px;">
+              © ${new Date().getFullYear()} Your Company. All rights reserved.
+            </div>
           </div>
         `,
+        attachments: [
+          {
+            filename: "logo.png",
+            path: path.join(__dirname, "public", "logo.png"), // Path to your logo
+            cid: "companyLogo", // Reference ID used in <img src="cid:companyLogo">
+          },
+        ],
       });
     }
 
-    // Success Response
     res.status(200).json({
       success: true,
       message: `✅ Newsletter sent to ${emails.length} recipients successfully!`,
     });
   } catch (error) {
     console.error("❌ Email sending failed:", error);
-
     res.status(500).json({
       success: false,
       message: "❌ Internal Server Error. Failed to send emails.",
