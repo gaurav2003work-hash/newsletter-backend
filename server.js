@@ -22,11 +22,11 @@ const PORT = process.env.PORT || 5000;
 // ------------------------------
 // CORS Configuration
 // ------------------------------
-// Change this to your Netlify URL after deployment for better security
+// Add your live Netlify frontend URL here
 const allowedOrigins = [
-  "http://localhost:3000",            // Local testing
-  "http://127.0.0.1:5500",           // If you're using Live Server
-  "https://newsletter-frontend.netlify.app", // Your Netlify frontend URL (replace later)
+  "http://localhost:3000",             // Local React testing
+  "http://127.0.0.1:5500",            // If you're using VSCode Live Server
+  "https://newsletter-cons.netlify.app" // ✅ Your deployed Netlify frontend
 ];
 
 app.use(
@@ -35,11 +35,13 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.warn(`❌ CORS Blocked: ${origin}`);
         callback(new Error("❌ Not allowed by CORS"));
       }
     },
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
+    credentials: true,
   })
 );
 
@@ -65,16 +67,18 @@ app.post("/send-newsletter", async (req, res) => {
     const { emails, subject, message } = req.body;
 
     // Validate request body
-    if (!emails || emails.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "⚠️ No recipient emails provided." });
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "⚠️ No recipient emails provided.",
+      });
     }
 
     if (!subject || !message) {
-      return res
-        .status(400)
-        .json({ success: false, message: "⚠️ Subject and message are required." });
+      return res.status(400).json({
+        success: false,
+        message: "⚠️ Subject and message are required.",
+      });
     }
 
     // ------------------------------
@@ -87,6 +91,9 @@ app.post("/send-newsletter", async (req, res) => {
         pass: process.env.EMAIL_PASS, // Gmail App Password from .env
       },
     });
+
+    // Verify transporter connection
+    await transporter.verify();
 
     // ------------------------------
     // Send Emails Individually
@@ -122,6 +129,7 @@ app.post("/send-newsletter", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Email sending failed:", error);
+
     res.status(500).json({
       success: false,
       message: "❌ Internal Server Error. Failed to send emails.",
@@ -130,9 +138,9 @@ app.post("/send-newsletter", async (req, res) => {
   }
 });
 
-
+// ------------------------------
 // Handle 404 Routes
-
+// ------------------------------
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -145,4 +153,5 @@ app.use((req, res) => {
 // ------------------------------
 app.listen(PORT, () => {
   console.log(`🚀 Server is running at http://localhost:${PORT}`);
+  console.log(`🌍 Live API: https://newsletter-backend-uvqx.onrender.com`);
 });
